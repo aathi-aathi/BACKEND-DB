@@ -13,7 +13,7 @@ studentRouter.post("/",async(req,res)=>{
     await collection.insertOne({
         ...body,
         id:Date.now().toString(),
-        mentorId:null,
+        mentor:null,
         prev_mentors:[],
 })
 res.send({msg:"Inserted Data successfully"})
@@ -21,20 +21,24 @@ res.send({msg:"Inserted Data successfully"})
         res.status(500).send({message:'Something went wrong'})
     }   
 })
-studentRouter.put("/:studentId",async(req,res)=>{
-    const {studentId}= req.params
-    const {body}=req;
+studentRouter.put("/",async(req,res)=>{
+    const userData = req.body
+    console.log(userData)
     try {
-         const checkmentor= await db.collection('students').findOne({id:studentId,mentorId:body.mentorId})
-         const mentorObj = await db.collection('mentor').findOne({id:body.mentorId})
-    if(!checkmentor){
-         await db.collection("students").updateOne({id:studentId},{$set:{mentor:mentorObj.name}})
-     await db.collection("mentors").updateOne({id:body.mentorId},{$push:{"students":studentId}})
-     await db.collection('students').updateOne({id:studentId},{$push:{"prev_mentors":body.mentorId}})
-         res.send({message:"Teacher assigned successfully"})
+         const checkmentor= await db.collection('students').findOne({id:userData.studentId,mentorId:userData.mentorId})
+         console.log('student',checkmentor)
+         const mentorObj = await db.collection('mentors').findOne({id:userData.mentorId})
+         const studentObj = await db.collection('students').findOne({id:userData.studentId})
+    if(checkmentor == null){
+        await db.collection("students").updateOne({id:userData.studentId},{$set:{mentor:mentorObj.name,mentorId:userData.mentorId}})
+        await db.collection("mentors").updateOne({id:userData.mentorId},{$push:{"students":studentObj.name}})
+        await db.collection('students').updateOne({id:userData.studentId},{$push:{"prev_mentors":mentorObj.name}})
+        res.send({message:"Teacher assigned successfully"})
+       
+         
     }
     else{
-        res.send({message:'The student already assigned to this mentor'})
+        res.status(402).send({message:'The student already assigned to this mentor',code:1})
     }
     } catch (error) {
         res.status(500).send({message:'Something went wrong'})

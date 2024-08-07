@@ -24,21 +24,31 @@ res.send({message:'Mentor created successfully'})
 mentorRouter.put("/:mentorId",async(req,res)=>{
     const {mentorId}=req.params;
     console.log(mentorId)
-    const {body}=req;
-    console.log(body)
+
     try {
-         const checkmentor= await db.collection('students').findOne({id:body.studentId,mentorId:null})
-    if(checkmentor){
-          
-            await db.collection("mentors").updateOne({id:mentorId},{$push:{"students":checkmentor.name}})
-            await db.collection("students").updateOne({id:body.studentId},{$set:{mentorId:mentorId}})
-            await db.collection('students').updateOne({id:body.studentId},{$push:{"prev_mentors":mentorId}})
+        let checkmentor;
+          checkmentor= await db.collection('students').find({isSelected:true}).toArray()
+         console.log(checkmentor) 
+    
+             const mentorObj = await db.collection('mentors').findOne({id:mentorId});
+             console.log('mentor',mentorObj)
+             checkmentor.map( async(student) =>{
+                console.log('student',student)
+                 await db.collection("mentors").updateOne({id:mentorId},{$push:{"students":student.name}})
+                 await db.collection("students").updateOne({id:student.id},{$set:{mentor:mentorObj.name,mentorId:mentorObj.id}})
+                await db.collection('students').updateOne({id:student},{$push:{"prev_mentors":mentorObj.name}})
+                await db.collection('students').updateOne({id:student.id},{$set:{isSelected:false}})
+             })
+           
             res.send({message:"Student assigned successfully"})
-    }
-    else{
-        res.send({message:'The mentor already assigned to this student'})
-    }
-    } catch (error) {
+    
+    // else{
+    //     res.send({message:'The mentor already assigned to this student'})
+    // }
+
+} 
+        
+     catch (error) {
         res.status(500).send({message:'Something went wrong'})
     }
    
